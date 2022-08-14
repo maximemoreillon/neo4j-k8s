@@ -7,7 +7,7 @@ spec:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 50Gi
+      storage: 100Gi
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -25,14 +25,18 @@ spec:
     spec:
       containers:
       - name: neo4j
-        image: neo4j:latest
+        image: neo4j:4.4.6
         ports:
         - containerPort: 7474
         - containerPort: 7473
         - containerPort: 7687
+        # Use NEO4J_AUTH variable from external secret
+        envFrom:
+        - secretRef:
+           name: neo4j-auth
         env:
-        - name: NEO4J_AUTH
-          value: neo4j/example
+        # - name: NEO4J_AUTH
+        #   value: neo4j/example
         volumeMounts:
         - mountPath: /conf
           name: config
@@ -75,7 +79,7 @@ data:
   # https://neo4j.com/developer/kb/setting-up-ssl-with-docker/#_2_copy_ssl_certificates_and_correct_permissions
   neo4j.conf: |
 
-    dbms.default_advertised_address=neo4j.home.maximemoreillon.com
+    dbms.default_advertised_address=neo4j.maximemoreillon.com
 
     # Bolt SSL configuration
     dbms.ssl.policy.bolt.enabled=true
@@ -83,7 +87,8 @@ data:
     dbms.ssl.policy.bolt.private_key=tls.key
     dbms.ssl.policy.bolt.public_certificate=tls.crt
     dbms.ssl.policy.bolt.client_auth=NONE
-    dbms.connector.bolt.tls_level=REQUIRED
+    #dbms.connector.bolt.tls_level=REQUIRED
+    dbms.connector.bolt.tls_level=OPTIONAL
 
     # Https SSL configuration
     dbms.connector.https.enabled=true
@@ -112,7 +117,7 @@ spec:
     nodePort: 30687
     name: neo4j-bolt
 ---
-apiVersion: extensions/v1beta1
+apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: neo4j
@@ -122,13 +127,16 @@ metadata:
 spec:
   tls:
   - hosts:
-    - neo4j.home.maximemoreillon.com
+    - neo4j.maximemoreillon.com
     secretName: neo4j-certs
   rules:
-  - host: neo4j.home.maximemoreillon.com
+  - host: neo4j.maximemoreillon.com
     http:
       paths:
       - path: /
+        pathType: Prefix
         backend:
-          serviceName: neo4j
-          servicePort: 7474
+          service:
+            name: neo4j
+            port:
+              number: 7474
