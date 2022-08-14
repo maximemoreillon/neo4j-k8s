@@ -72,6 +72,7 @@ kind: ConfigMap
 metadata:
   name: neo4j-config
 data:
+  # https://neo4j.com/developer/kb/setting-up-ssl-with-docker/#_2_copy_ssl_certificates_and_correct_permissions
   neo4j.conf: |
 
     dbms.default_advertised_address=neo4j.home.maximemoreillon.com
