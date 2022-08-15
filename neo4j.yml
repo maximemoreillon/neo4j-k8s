@@ -26,6 +26,9 @@ spec:
       containers:
       - name: neo4j
         image: neo4j:4.4.6
+        # Uncomment those for importing data
+        # command: ["neo4j-admin"]
+        # args: ["load", "--from=/data/neo4j_backup.dump", "--force"]
         ports:
         - containerPort: 7474
         - containerPort: 7473
@@ -97,7 +100,11 @@ data:
     dbms.ssl.policy.https.private_key=tls.key
     dbms.ssl.policy.https.public_certificate=tls.crt
     dbms.ssl.policy.https.client_auth=NONE
+
+    # Misc
+    dbms.allow_upgrade=true
 ---
+# TODO: consider having a nodeport only for bolt
 apiVersion: v1
 kind: Service
 metadata:
