@@ -1,0 +1,52 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: neo4j-restarter
+  namespace: moreillon
+spec:
+  schedule: "0 0 1 * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: neo4j-restarter
+          restartPolicy: OnFailure
+          containers:
+          - name: kubectl
+            image: bitnami/kubectl
+            command:
+                - kubectl
+                - rollout
+                - restart
+                - deployment/neo4j
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: neo4j-restarter
+  namespace: moreillon
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: neo4j-restarter
+  namespace: moreillon
+rules:
+  - apiGroups: ["apps", "extensions"]
+    resources: ["deployments"]
+    resourceNames: ["neo4j"]
+    verbs: ["get", "patch", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: neo4j-restarter
+  namespace: moreillon
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: neo4j-restarter
+subjects:
+  - kind: ServiceAccount
+    name: neo4j-restarter
+    namespace: moreillon

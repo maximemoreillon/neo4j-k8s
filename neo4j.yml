@@ -1,14 +1,3 @@
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: neo4j
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 100Gi
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -25,7 +14,7 @@ spec:
     spec:
       containers:
       - name: neo4j
-        image: neo4j:4.4.6
+        image: neo4j:4.4.16
         # Uncomment those for importing data
         # command: ["neo4j-admin"]
         # args: ["load", "--from=/data/neo4j_backup.dump", "--force"]
@@ -82,7 +71,7 @@ data:
   # https://neo4j.com/developer/kb/setting-up-ssl-with-docker/#_2_copy_ssl_certificates_and_correct_permissions
   neo4j.conf: |
 
-    dbms.default_advertised_address=neo4j.example.com
+    dbms.default_advertised_address=neo4j.maximemoreillon.com
 
     # Bolt SSL configuration
     dbms.ssl.policy.bolt.enabled=true
@@ -104,7 +93,6 @@ data:
     # Misc
     dbms.allow_upgrade=true
 ---
-# TODO: consider having a nodeport only for bolt
 apiVersion: v1
 kind: Service
 metadata:
@@ -134,10 +122,10 @@ metadata:
 spec:
   tls:
   - hosts:
-    - neo4j.example.com
+    - neo4j.maximemoreillon.com
     secretName: neo4j-certs
   rules:
-  - host: neo4j.example.com
+  - host: neo4j.maximemoreillon.com
     http:
       paths:
       - path: /
