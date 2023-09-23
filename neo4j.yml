@@ -12,56 +12,50 @@ spec:
       labels:
         app: neo4j
     spec:
+      enableServiceLinks: false
       containers:
-      - name: neo4j
-        image: neo4j:4.4.16
-        # Uncomment those for importing data
-        # command: ["neo4j-admin"]
-        # args: ["load", "--from=/data/neo4j_backup.dump", "--force"]
-        ports:
-        - containerPort: 7474
-        - containerPort: 7473
-        - containerPort: 7687
-        # Use NEO4J_AUTH variable from external secret
-        envFrom:
-        - secretRef:
-           name: neo4j-auth
-        env:
-        # - name: NEO4J_AUTH
-        #   value: neo4j/example
-        volumeMounts:
-        - mountPath: /conf
-          name: config
-        - mountPath: /ssl
-          name: certs
-        - mountPath: /data
-          name: data
+        - name: neo4j
+          image: neo4j:5.12.0
+          ports:
+            - containerPort: 7474
+            - containerPort: 7473
+            - containerPort: 7687
+          envFrom:
+            - secretRef:
+                name: neo4j-auth
+          volumeMounts:
+            - mountPath: /conf
+              name: config
+            - mountPath: /ssl
+              name: certs
+            - mountPath: /data
+              name: data
       volumes:
-      - name: config
-        configMap:
-          name: neo4j-config
-      - name: certs
-        secret:
-          secretName: neo4j-certs
-          # https://neo4j.com/developer/kb/setting-up-ssl-with-docker/#_2_copy_ssl_certificates_and_correct_permissions
-          items:
-          # Bolt
-          - key: tls.key
-            path: bolt/tls.key
-          - key: tls.crt
-            path: bolt/tls.crt
-          - key: tls.crt
-            path: bolt/trusted/tls.crt
-          # HTTPS
-          - key: tls.key
-            path: https/tls.key
-          - key: tls.crt
-            path: https/tls.crt
-          - key: tls.crt
-            path: https/trusted/tls.crt
-      - name: data
-        persistentVolumeClaim:
-          claimName: neo4j
+        - name: config
+          configMap:
+            name: neo4j-config
+        - name: certs
+          secret:
+            secretName: neo4j-certs
+            # https://neo4j.com/developer/kb/setting-up-ssl-with-docker/#_2_copy_ssl_certificates_and_correct_permissions
+            items:
+              # Bolt
+              - key: tls.key
+                path: bolt/tls.key
+              - key: tls.crt
+                path: bolt/tls.crt
+              - key: tls.crt
+                path: bolt/trusted/tls.crt
+              # HTTPS
+              - key: tls.key
+                path: https/tls.key
+              - key: tls.crt
+                path: https/tls.crt
+              - key: tls.crt
+                path: https/trusted/tls.crt
+        - name: data
+          persistentVolumeClaim:
+            claimName: neo4j
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -71,27 +65,23 @@ data:
   # https://neo4j.com/developer/kb/setting-up-ssl-with-docker/#_2_copy_ssl_certificates_and_correct_permissions
   neo4j.conf: |
 
-    dbms.default_advertised_address=neo4j.maximemoreillon.com
+    server.default_advertised_address=neo4j.example.com
 
     # Bolt SSL configuration
+    server.bolt.tls_level=OPTIONAL
     dbms.ssl.policy.bolt.enabled=true
     dbms.ssl.policy.bolt.base_directory=certificates/bolt
     dbms.ssl.policy.bolt.private_key=tls.key
     dbms.ssl.policy.bolt.public_certificate=tls.crt
     dbms.ssl.policy.bolt.client_auth=NONE
-    #dbms.connector.bolt.tls_level=REQUIRED
-    dbms.connector.bolt.tls_level=OPTIONAL
 
     # Https SSL configuration
-    dbms.connector.https.enabled=true
+    server.https.enabled=true
     dbms.ssl.policy.https.enabled=true
     dbms.ssl.policy.https.base_directory=certificates/https
     dbms.ssl.policy.https.private_key=tls.key
     dbms.ssl.policy.https.public_certificate=tls.crt
     dbms.ssl.policy.https.client_auth=NONE
-
-    # Misc
-    dbms.allow_upgrade=true
 ---
 apiVersion: v1
 kind: Service
@@ -102,36 +92,36 @@ spec:
   selector:
     app: neo4j
   ports:
-  - port: 7474
-    nodePort: 30474
-    name: neo4j-http
-  - port: 7473
-    nodePort: 30473
-    name: neo4j-https
-  - port: 7687
-    nodePort: 30687
-    name: neo4j-bolt
+    - port: 7474
+      nodePort: 30474
+      name: neo4j-http
+    - port: 7473
+      nodePort: 30473
+      name: neo4j-https
+    - port: 7687
+      nodePort: 30687
+      name: neo4j-bolt
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: neo4j
   annotations:
-    kubernetes.io/ingress.class: "nginx"
-    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    kubernetes.io/ingress.class: nginx
+    cert-manager.io/cluster-issuer: letsencrypt-prod
 spec:
   tls:
-  - hosts:
-    - neo4j.maximemoreillon.com
-    secretName: neo4j-certs
+    - hosts:
+        - neo4j.example.com
+      secretName: neo4j-certs
   rules:
-  - host: neo4j.maximemoreillon.com
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: neo4j
-            port:
-              number: 7474
+    - host: neo4j.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: neo4j
+                port:
+                  number: 7474

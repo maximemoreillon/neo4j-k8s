@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: neo4j-dumper
+spec:
+  enableServiceLinks: false
+  restartPolicy: Never
+  containers:
+    - name: neo4j-dumper
+      image: neo4j:4.4.16
+      command: ["neo4j-admin"]
+      args: ["dump", "--to=/data/dumps/neo4j.dump"]
+        - mountPath: /data
+          name: data
+  volumes:
+    - name: data
+      persistentVolumeClaim:
+        claimName: neo4j
